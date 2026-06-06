@@ -26,7 +26,7 @@ canvas{display:block;width:1080px;height:1350px}
 
 <div id="status">
   <div class="spinner"></div>
-  <span>Rendering image…</span>
+  <span>Preparing download…</span>
 </div>
 
 <canvas id="cv" width="1080" height="1350"></canvas>
@@ -152,14 +152,25 @@ function draw(ctx,img,headline,gw){
   drawFooter(ctx);
 }
 
-// ── Auto-download the canvas as PNG ──
-function autoDownload(canvas, rowId){
-  const link = document.createElement('a');
-  link.download = 'fashionuer-post-row' + rowId + '.png';
-  link.href = canvas.toDataURL('image/png');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+// ── Download then close tab ──
+function autoDownloadAndClose(canvas, rowId){
+  canvas.toBlob(function(blob){
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = 'fashionuer-post-row' + rowId + '.png';
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Revoke blob URL after short delay
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      // Close the tab after download starts
+      window.close();
+    }, 2000);
+
+  }, 'image/png');
 }
 
 async function main(){
@@ -172,13 +183,9 @@ async function main(){
   const ctx = cv.getContext('2d');
 
   const finish = () => {
-    // Remove loading overlay
     const status = document.getElementById('status');
     if(status) status.remove();
-
-    // Auto-download PNG immediately
-    autoDownload(cv, rowId);
-
+    autoDownloadAndClose(cv, rowId);
     document.title = 'DONE';
     document.body.setAttribute('data-ready','true');
   };
