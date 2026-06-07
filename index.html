@@ -20,6 +20,7 @@ canvas{display:block;width:1080px;height:1350px}
   animation:spin 0.8s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+@font-face{font-family:'League Spartan';font-display:block;}
 </style>
 </head>
 <body>
@@ -162,8 +163,11 @@ function autoDownload(canvas, rowId){
 }
 
 async function main(){
-  await document.fonts.ready;
-  await new Promise(r=>setTimeout(r,500));
+  // Wait max 2s for fonts, then proceed regardless
+  await Promise.race([
+    document.fonts.ready,
+    new Promise(r=>setTimeout(r,2000))
+  ]);
 
   const {headline, imageUrl, rowId} = getParams();
   const gw = heuristic(headline);
@@ -171,7 +175,7 @@ async function main(){
   const ctx = cv.getContext('2d');
 
   const finish = () => {
-    // Set ready signals FIRST before anything else
+    // Set ready signals FIRST
     document.title = 'DONE';
     document.body.setAttribute('data-ready','true');
 
@@ -188,6 +192,8 @@ async function main(){
     img.crossOrigin = 'anonymous';
     img.onload  = () => { draw(ctx, img, headline, gw); finish(); };
     img.onerror = () => { draw(ctx, null, headline, gw); finish(); };
+    // Set 10s timeout for image load
+    setTimeout(() => { draw(ctx, null, headline, gw); finish(); }, 10000);
     img.src = imageUrl;
   } else {
     draw(ctx, null, headline, gw);
