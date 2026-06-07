@@ -20,16 +20,25 @@ canvas{display:block;width:1080px;height:1350px}
   animation:spin 0.8s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* Invisible download anchor — sits in DOM ready to fire */
+#dl-anchor{
+  position:fixed;
+  top:-9999px;left:-9999px;
+  width:1px;height:1px;
+  opacity:0;pointer-events:none;
+}
 </style>
 </head>
 <body>
 
 <div id="status">
   <div class="spinner"></div>
-  <span>Preparing download…</span>
+  <span id="status-msg">Preparing…</span>
 </div>
 
 <canvas id="cv" width="1080" height="1350"></canvas>
+<a id="dl-anchor" tabindex="-1" aria-hidden="true"></a>
 
 <script>
 const GOLD='#c49911',WHITE='#ffffff',BLACK='#000000',W=1080,H=1350;
@@ -40,6 +49,10 @@ const IMAGE_BOTTOM=splitY+40+66;
 const NEWS_TAG_X=PAD_L,NEWS_TAG_Y=splitY+40,NEWS_TAG_H=66;
 const HL_TOP=NEWS_TAG_Y+NEWS_TAG_H+24;
 const FOOTER_Y=H-B_INSET;
+
+/* ── cached blob URL — set once on load, reused on click ── */
+let _cachedBlobUrl = null;
+let _rowId = '1';
 
 function getParams(){
   const p=new URLSearchParams(window.location.search);
@@ -152,45 +165,67 @@ function draw(ctx,img,headline,gw){
   drawFooter(ctx);
 }
 
-// ── Download then close tab ──
-function autoDownloadAndClose(canvas, rowId){
-  canvas.toBlob(function(blob){
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = 'fashionuer-post-row' + rowId + '.png';
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+/* ── Convert canvas to blob and cache it ── */
+function cacheCanvasBlob(canvas, rowId){
+  return new Promise((resolve) => {
+    canvas.toBlob(function(blob){
+      /* Revoke any old cached URL first */
+      if(_cachedBlobUrl) URL.revokeObjectURL(_cachedBlobUrl);
+      _cachedBlobUrl = URL.createObjectURL(blob);
 
-    // Revoke blob URL after short delay
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      // Close the tab after download starts
-      window.close();
-    }, 2000);
+      /* Pre-wire the hidden anchor so click is truly instant */
+      const anchor = document.getElementById('dl-anchor');
+      anchor.href     = _cachedBlobUrl;
+      anchor.download = 'fashionuer-post-row' + rowId + '.png';
 
-  }, 'image/png');
+      resolve(_cachedBlobUrl);
+    }, 'image/png');
+  });
 }
 
+/* ── Called by the host page / automation on the final click ── */
+function triggerInstantDownload(){
+  if(!_cachedBlobUrl){
+    /* Fallback: blob not ready yet (shouldn't happen normally) */
+    console.warn('[PostBuilder] Blob not cached yet — waiting…');
+    return false;
+  }
+  const anchor = document.getElementById('dl-anchor');
+  anchor.click(); /* Instant — no canvas work at all */
+  return true;
+}
+
+/* Expose globally so the host can call window.triggerInstantDownload() */
+window.triggerInstantDownload = triggerInstantDownload;
+
+/* ── Main ── */
 async function main(){
   await document.fonts.ready;
-  await new Promise(r=>setTimeout(r,1500));
 
   const {headline, imageUrl, rowId} = getParams();
+  _rowId = rowId;
   const gw = heuristic(headline);
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
+  const statusMsg = document.getElementById('status-msg');
 
-  const finish = () => {
+  const finish = async () => {
+    statusMsg.textContent = 'Caching PNG…';
+    await cacheCanvasBlob(cv, rowId);
+
+    /* Hide overlay */
     const status = document.getElementById('status');
     if(status) status.remove();
-    autoDownloadAndClose(cv, rowId);
-    document.title = 'DONE';
-    document.body.setAttribute('data-ready','true');
+
+    document.title = 'READY';
+    document.body.setAttribute('data-ready', 'true');
+
+    /* Auto-download if no host interaction expected */
+    triggerInstantDownload();
   };
 
   if(imageUrl){
+    statusMsg.textContent = 'Loading image…';
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload  = () => { draw(ctx, img, headline, gw); finish(); };
@@ -198,7 +233,7 @@ async function main(){
     img.src = imageUrl;
   } else {
     draw(ctx, null, headline, gw);
-    finish();
+    await finish();
   }
 }
 
