@@ -7,59 +7,29 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1080px;height:1350px;overflow:hidden;background:#000}
 canvas{display:block;width:1080px;height:1350px}
-
 #status{
   position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,0.92);
+  background:rgba(0,0,0,0.85);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  color:#fff;font-family:sans-serif;gap:20px;
+  color:#fff;font-family:sans-serif;font-size:22px;gap:16px;
   z-index:999;
 }
 #status .spinner{
-  width:52px;height:52px;border:4px solid #333;
+  width:48px;height:48px;border:4px solid #333;
   border-top-color:#c49911;border-radius:50%;
   animation:spin 0.8s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
-#status-title{font-size:22px;font-weight:700;letter-spacing:0.05em;color:#fff}
-#status-msg{font-size:16px;color:#888;letter-spacing:0.04em}
-
-/* Fallback button — hidden until auto-download is confirmed blocked */
-#dl-btn{
-  display:none;
-  margin-top:12px;
-  padding:18px 56px;
-  background:#c49911;
-  color:#000;
-  font-family:sans-serif;
-  font-size:19px;
-  font-weight:800;
-  letter-spacing:0.07em;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  text-transform:uppercase;
-}
-#dl-btn:hover{background:#ddb820}
-#dl-btn:active{transform:scale(0.97)}
-
-#dl-anchor{
-  position:fixed;top:-9999px;left:-9999px;
-  width:1px;height:1px;opacity:0;pointer-events:none;
-}
 </style>
 </head>
 <body>
 
 <div id="status">
-  <div class="spinner" id="spinner"></div>
-  <span id="status-title">FASHIONUER</span>
-  <span id="status-msg">Building post…</span>
-  <button id="dl-btn" onclick="triggerInstantDownload()">⬇ Download PNG</button>
+  <div class="spinner"></div>
+  <span>Rendering image…</span>
 </div>
 
 <canvas id="cv" width="1080" height="1350"></canvas>
-<a id="dl-anchor" tabindex="-1" aria-hidden="true"></a>
 
 <script>
 const GOLD='#c49911',WHITE='#ffffff',BLACK='#000000',W=1080,H=1350;
@@ -70,9 +40,6 @@ const IMAGE_BOTTOM=splitY+40+66;
 const NEWS_TAG_X=PAD_L,NEWS_TAG_Y=splitY+40,NEWS_TAG_H=66;
 const HL_TOP=NEWS_TAG_Y+NEWS_TAG_H+24;
 const FOOTER_Y=H-B_INSET;
-
-let _cachedBlobUrl=null;
-let _rowId='1';
 
 function getParams(){
   const p=new URLSearchParams(window.location.search);
@@ -146,11 +113,11 @@ function drawLine(ctx,line,x,y,fs,gw){
 function draw(ctx,img,headline,gw){
   ctx.fillStyle=BLACK;ctx.fillRect(0,0,W,H);
   if(img){
-    const tar=W/H;const ar=img.width/img.height;
+    const tar=W/IMAGE_BOTTOM;const ar=img.width/img.height;
     let sx=0,sy=0,sw=img.width,sh=img.height;
     if(ar>tar){sw=sh*tar;sx=(img.width-sw)/2;}
     else{sh=sw/tar;sy=(img.height-sh)/2;}
-    ctx.drawImage(img,sx,sy,sw,sh,0,0,W,H);
+    ctx.drawImage(img,sx,sy,sw,sh,0,0,W,IMAGE_BOTTOM);
   }
   const gradStart=Math.round(H*0.25);
   const gradEnd=Math.round(H*0.78);
@@ -185,86 +152,46 @@ function draw(ctx,img,headline,gw){
   drawFooter(ctx);
 }
 
-function cacheCanvasBlob(canvas,rowId){
-  return new Promise(resolve=>{
-    canvas.toBlob(blob=>{
-      if(_cachedBlobUrl) URL.revokeObjectURL(_cachedBlobUrl);
-      _cachedBlobUrl=URL.createObjectURL(blob);
-      const anchor=document.getElementById('dl-anchor');
-      anchor.href=_cachedBlobUrl;
-      anchor.download='fashionuer-post-row'+rowId+'.png';
-      resolve(_cachedBlobUrl);
-    },'image/png');
-  });
-}
-
-function triggerInstantDownload(){
-  if(!_cachedBlobUrl) return false;
-  const anchor=document.getElementById('dl-anchor');
-  anchor.click();
-  return true;
-}
-window.triggerInstantDownload=triggerInstantDownload;
-
-function showFallbackButton(){
-  document.getElementById('spinner').style.display='none';
-  document.getElementById('status-msg').textContent='Your browser blocked auto-download.';
-  document.getElementById('dl-btn').style.display='block';
-}
-
-function hideOverlay(){
-  const el=document.getElementById('status');
-  if(el) el.remove();
+function autoDownload(canvas, rowId){
+  const link = document.createElement('a');
+  link.download = 'fashionuer-post-row' + rowId + '.png';
+  link.href = canvas.toDataURL('image/png');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 async function main(){
   await document.fonts.ready;
+  await new Promise(r=>setTimeout(r,500));
 
-  const {headline,imageUrl,rowId}=getParams();
-  _rowId=rowId;
-  const gw=heuristic(headline);
-  const cv=document.getElementById('cv');
-  const ctx=cv.getContext('2d');
-  const statusMsg=document.getElementById('status-msg');
+  const {headline, imageUrl, rowId} = getParams();
+  const gw = heuristic(headline);
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
 
-  const finish=async()=>{
-    statusMsg.textContent='Almost ready…';
-    await cacheCanvasBlob(cv,rowId);
-
-    document.title='READY';
+  const finish = () => {
+    // Set ready signals FIRST before anything else
+    document.title = 'DONE';
     document.body.setAttribute('data-ready','true');
 
-    /* ── Auto-download attempt ── */
-    /* We fire the anchor click. If the browser allows it, file saves immediately.
-       If blocked (no prior gesture), the browser silently ignores it —
-       so we show the fallback button after a short delay. */
-    const anchor=document.getElementById('dl-anchor');
-    anchor.click();
+    // Remove loading overlay
+    const status = document.getElementById('status');
+    if(status) status.remove();
 
-    /* Give browser ~800ms to handle the download.
-       If nothing happened (tab still open, no save dialog), show button. */
-    setTimeout(()=>{
-      /* If tab is still visible/open, the auto-download either worked or was blocked.
-         Either way we surface the button as a guaranteed fallback. */
-      hideOverlay();
-
-      /* Show a tiny floating fallback pill in the corner — non-intrusive */
-      const pill=document.createElement('div');
-      pill.innerHTML='<button onclick="triggerInstantDownload()" style="position:fixed;bottom:24px;right:24px;z-index:9999;padding:14px 32px;background:#c49911;color:#000;font-family:sans-serif;font-size:16px;font-weight:800;letter-spacing:0.06em;border:none;border-radius:6px;cursor:pointer;text-transform:uppercase;box-shadow:0 4px 20px rgba(0,0,0,0.5);">⬇ Download PNG</button>';
-      document.body.appendChild(pill);
-    },800);
+    // Auto-download PNG
+    autoDownload(cv, rowId);
   };
 
   if(imageUrl){
-    statusMsg.textContent='Loading image…';
-    const img=new Image();
-    img.crossOrigin='anonymous';
-    img.onload=()=>{ draw(ctx,img,headline,gw); finish(); };
-    img.onerror=()=>{ draw(ctx,null,headline,gw); finish(); };
-    img.src=imageUrl;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => { draw(ctx, img, headline, gw); finish(); };
+    img.onerror = () => { draw(ctx, null, headline, gw); finish(); };
+    img.src = imageUrl;
   } else {
-    draw(ctx,null,headline,gw);
-    await finish();
+    draw(ctx, null, headline, gw);
+    finish();
   }
 }
 
