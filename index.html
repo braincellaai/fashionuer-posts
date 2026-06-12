@@ -163,7 +163,6 @@ function autoDownload(canvas, rowId){
 }
 
 async function main(){
-  // Wait max 2s for fonts, then proceed regardless
   await Promise.race([
     document.fonts.ready,
     new Promise(r=>setTimeout(r,2000))
@@ -175,24 +174,17 @@ async function main(){
   const ctx = cv.getContext('2d');
 
   const finish = () => {
-    // Set ready signals FIRST
     document.title = 'DONE';
     document.body.setAttribute('data-ready','true');
-
-    // Remove loading overlay
     const status = document.getElementById('status');
     if(status) status.remove();
-
-    // Auto-download PNG
     autoDownload(cv, rowId);
   };
 
   if(imageUrl){
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload  = () => { draw(ctx, img, headline, gw); finish(); };
     img.onerror = () => { draw(ctx, null, headline, gw); finish(); };
-    // Set 10s timeout for image load
     setTimeout(() => { draw(ctx, null, headline, gw); finish(); }, 10000);
     img.src = imageUrl;
   } else {
