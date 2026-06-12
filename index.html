@@ -114,21 +114,21 @@ function drawLine(ctx,line,x,y,fs,gw){
 function draw(ctx,img,headline,gw){
   ctx.fillStyle=BLACK;ctx.fillRect(0,0,W,H);
   if(img){
-    const tar=W/IMAGE_BOTTOM;const ar=img.width/img.height;
+    const tar=4/3;const ar=img.width/img.height;
     let sx=0,sy=0,sw=img.width,sh=img.height;
     if(ar>tar){sw=sh*tar;sx=(img.width-sw)/2;}
     else{sh=sw/tar;sy=(img.height-sh)/2;}
     ctx.drawImage(img,sx,sy,sw,sh,0,0,W,IMAGE_BOTTOM);
   }
-  const gradStart=Math.round(H*0.25);
-  const gradEnd=Math.round(H*0.78);
+  const gradStart=0;
+  const gradEnd=IMAGE_BOTTOM+40;
   const grad=ctx.createLinearGradient(0,gradStart,0,gradEnd);
   grad.addColorStop(0,   'rgba(0,0,0,0)');
-  grad.addColorStop(0.15,'rgba(0,0,0,0.05)');
-  grad.addColorStop(0.32,'rgba(0,0,0,0.22)');
-  grad.addColorStop(0.50,'rgba(0,0,0,0.55)');
-  grad.addColorStop(0.68,'rgba(0,0,0,0.82)');
-  grad.addColorStop(0.82,'rgba(0,0,0,0.96)');
+  grad.addColorStop(0.45,'rgba(0,0,0,0.05)');
+  grad.addColorStop(0.60,'rgba(0,0,0,0.18)');
+  grad.addColorStop(0.72,'rgba(0,0,0,0.38)');
+  grad.addColorStop(0.82,'rgba(0,0,0,0.6)');
+  grad.addColorStop(0.90,'rgba(0,0,0,0.82)');
   grad.addColorStop(1,   'rgba(0,0,0,1)');
   ctx.fillStyle=grad;ctx.fillRect(0,gradStart,W,gradEnd-gradStart);
   ctx.fillStyle=BLACK;ctx.fillRect(0,gradEnd,W,H-gradEnd);
