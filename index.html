@@ -44,9 +44,13 @@ const FOOTER_Y=H-B_INSET;
 
 function getParams(){
   const p=new URLSearchParams(window.location.search);
+  let imageUrl = p.get('image')||'';
+  if(imageUrl){
+    imageUrl = 'https://corsproxy.io/?' + encodeURIComponent(imageUrl);
+  }
   return{
     headline:(p.get('headline')||'').toUpperCase(),
-    imageUrl:p.get('image')||'',
+    imageUrl,
     rowId:p.get('rowId')||'1'
   };
 }
