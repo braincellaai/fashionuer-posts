@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;800;900&family=Playfair+Display:ital,wght@1,400;1,700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1080px;height:1350px;overflow:hidden;background:#000}
@@ -29,8 +29,8 @@ canvas{display:block;width:1080px;height:1350px}
 </div>
 <canvas id="cv" width="1080" height="1350"></canvas>
 <script>
-const GOLD='#ffffff',WHITE='#ffffff',BLACK='#000000',W=1080,H=1350;
-const B_INSET=14,B_THICK=3;
+const WHITE='#ffffff',BLACK='#000000',W=1080,H=1350;
+const B_INSET=14;
 const FOOTER_FS=30;
 const FOOTER_Y=H-B_INSET;
 
@@ -42,11 +42,6 @@ function getParams(){
   };
 }
 
-function drawBorder(ctx){
-  ctx.strokeStyle=GOLD;ctx.lineWidth=B_THICK;
-  ctx.strokeRect(B_INSET,B_INSET,W-B_INSET*2,H-B_INSET*2);
-}
-
 function drawFooter(ctx){
   const text='F A S H I O N U E R';
   ctx.font=`800 ${FOOTER_FS}px "League Spartan",sans-serif`;
@@ -56,16 +51,12 @@ function drawFooter(ctx){
   ctx.fillRect(W/2-tw/2-textPad,FOOTER_Y-FOOTER_FS/2-2,tw+textPad*2,FOOTER_FS+4);
   ctx.fillStyle=WHITE;ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText(text,W/2,FOOTER_Y);
-  ctx.strokeStyle=GOLD;ctx.lineWidth=B_THICK;
-  ctx.beginPath();ctx.moveTo(B_INSET+4,FOOTER_Y);ctx.lineTo(W/2-tw/2-textPad-24,FOOTER_Y);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(W/2+tw/2+textPad+24,FOOTER_Y);ctx.lineTo(W-B_INSET-4,FOOTER_Y);ctx.stroke();
 }
 
 function drawBreakingNews(ctx){
   const x=B_INSET+10, y=B_INSET+30;
   const fontSize=28;
 
-  // ✅ Force canvas to use 900 weight bold
   ctx.font=`900 ${fontSize}px "League Spartan",sans-serif`;
 
   const text='BREAKING NEWS';
@@ -78,7 +69,6 @@ function drawBreakingNews(ctx){
   ctx.fillStyle='#e10600';
   ctx.fillRect(x,y,boxW,boxH);
 
-  // ✅ Draw text with shadow for extra boldness perception
   ctx.shadowColor='rgba(0,0,0,0.4)';
   ctx.shadowBlur=2;
   ctx.shadowOffsetX=1;
@@ -108,10 +98,31 @@ function drawBreakingNews(ctx){
 
 function drawUrl(ctx, badgeMidY){
   const text='www.fashionuer.com';
-  const fontSize=18;
-  ctx.font=`600 ${fontSize}px "League Spartan",sans-serif`;
-  ctx.fillStyle=WHITE;ctx.textAlign='right';ctx.textBaseline='middle';
-  ctx.fillText(text,W-B_INSET-10,badgeMidY);
+  const fontSize=20;
+
+  // Different font: italic serif (Playfair Display) for elegance
+  ctx.font=`italic 700 ${fontSize}px "Playfair Display",serif`;
+
+  // Semi-transparent white so background image shows through
+  ctx.globalAlpha=0.55;
+  ctx.fillStyle=WHITE;
+  ctx.textAlign='right';
+  ctx.textBaseline='middle';
+
+  // Subtle text shadow so it remains legible over any background
+  ctx.shadowColor='rgba(0,0,0,0.6)';
+  ctx.shadowBlur=6;
+  ctx.shadowOffsetX=1;
+  ctx.shadowOffsetY=1;
+
+  ctx.fillText(text, W-B_INSET-10, badgeMidY);
+
+  // Reset
+  ctx.globalAlpha=1;
+  ctx.shadowColor='transparent';
+  ctx.shadowBlur=0;
+  ctx.shadowOffsetX=0;
+  ctx.shadowOffsetY=0;
 }
 
 function draw(ctx,img){
@@ -123,7 +134,7 @@ function draw(ctx,img){
     else{sh=sw/tar;sy=(img.height-sh)/2;}
     ctx.drawImage(img,sx,sy,sw,sh,0,0,W,H);
   }
-  drawBorder(ctx);
+  // No border drawn
   drawFooter(ctx);
   const badgeMidY=drawBreakingNews(ctx);
   drawUrl(ctx,badgeMidY);
