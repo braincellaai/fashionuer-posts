@@ -5,55 +5,27 @@
 <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:1080px;height:1350px;overflow:hidden;background:#000}
-canvas{display:block;width:1080px;height:1350px}
-#status{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,0.85);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  color:#fff;font-family:sans-serif;font-size:22px;gap:16px;
-  z-index:999;
-}
-#status .spinner{
-  width:48px;height:48px;border:4px solid #333;
-  border-top-color:#c49911;border-radius:50%;
-  animation:spin 0.8s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-@font-face{font-family:'League Spartan';font-display:block;}
+body{background:#222;display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px;font-family:sans-serif;color:#fff}
+canvas{display:block;width:540px;height:675px;background:#000;border:1px solid #555}
+input{margin-bottom:10px}
 </style>
 </head>
 <body>
-
-<div id="status">
-  <div class="spinner"></div>
-  <span>Rendering image…</span>
-</div>
-
+<input type="file" id="fileInput" accept="image/*">
 <canvas id="cv" width="1080" height="1350"></canvas>
-
 <script>
 const GOLD='#ffffff',WHITE='#ffffff',BLACK='#000000',W=1080,H=1350;
-const B_INSET=28,B_THICK=3;
+const B_INSET=14,B_THICK=3;
 const FOOTER_FS=30;
 const FOOTER_Y=H-B_INSET;
-
-function getParams(){
-  const p=new URLSearchParams(window.location.search);
-  return{
-    imageUrl:p.get('image')||'',
-    rowId:p.get('rowId')||'1'
-  };
-}
 
 function drawBorder(ctx){
   ctx.strokeStyle=GOLD;ctx.lineWidth=B_THICK;
   ctx.strokeRect(B_INSET,B_INSET,W-B_INSET*2,H-B_INSET*2);
 }
-
 function drawFooter(ctx){
   const text='F A S H I O N U E R';
-  ctx.font=`700 ${FOOTER_FS}px "League Spartan",sans-serif`;
+  ctx.font=`400 ${FOOTER_FS}px "League Spartan",sans-serif`;
   const tw=ctx.measureText(text).width;
   const textPad=20;
   ctx.fillStyle=BLACK;
@@ -64,7 +36,45 @@ function drawFooter(ctx){
   ctx.beginPath();ctx.moveTo(B_INSET+10,FOOTER_Y);ctx.lineTo(W/2-tw/2-textPad-24,FOOTER_Y);ctx.stroke();
   ctx.beginPath();ctx.moveTo(W/2+tw/2+textPad+24,FOOTER_Y);ctx.lineTo(W-B_INSET-10,FOOTER_Y);ctx.stroke();
 }
+function drawBreakingNews(ctx){
+  const x=B_INSET+10, y=B_INSET+30;
+  const fontSize=26;
+  ctx.font=`800 ${fontSize}px "League Spartan",sans-serif`;
+  const text='BREAKING NEWS';
+  const textW=ctx.measureText(text).width;
+  const padX=22, padY=14;
+  const boxW=textW+padX*2;
+  const boxH=fontSize+padY*2;
+  const stripeW=boxH*0.16, stripeGap=boxH*0.14, stripeSkew=boxH*0.22, numStripes=3;
 
+  ctx.fillStyle='#e10600';
+  ctx.fillRect(x,y,boxW,boxH);
+
+  ctx.fillStyle=WHITE;
+  ctx.textAlign='left';ctx.textBaseline='middle';
+  ctx.fillText(text,x+padX,y+boxH/2+1);
+
+  let sx=x+boxW+stripeGap;
+  for(let i=0;i<numStripes;i++){
+    ctx.fillStyle='#e10600';
+    ctx.beginPath();
+    ctx.moveTo(sx+stripeSkew,y);
+    ctx.lineTo(sx+stripeSkew+stripeW,y);
+    ctx.lineTo(sx+stripeW,y+boxH);
+    ctx.lineTo(sx,y+boxH);
+    ctx.closePath();
+    ctx.fill();
+    sx+=stripeW+stripeGap;
+  }
+}
+function drawUrl(ctx){
+  const text='www.fashionuer.com';
+  const fontSize=18;
+  ctx.font=`600 ${fontSize}px "League Spartan",sans-serif`;
+  ctx.fillStyle=WHITE;
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  ctx.fillText(text,W-B_INSET-10,B_INSET+10+fontSize/2+8);
+}
 function draw(ctx,img){
   ctx.fillStyle=BLACK;ctx.fillRect(0,0,W,H);
   if(img){
@@ -76,47 +86,26 @@ function draw(ctx,img){
   }
   drawBorder(ctx);
   drawFooter(ctx);
+  drawBreakingNews(ctx);
+  drawUrl(ctx);
 }
 
-function autoDownload(canvas, rowId){
-  const link = document.createElement('a');
-  link.download = 'fashionuer-post-row' + rowId + '.png';
-  link.href = canvas.toDataURL('image/png');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+
+async function render(img){
+  await Promise.race([document.fonts.ready, new Promise(r=>setTimeout(r,1000))]);
+  draw(ctx,img);
 }
+render(null);
 
-async function main(){
-  await Promise.race([
-    document.fonts.ready,
-    new Promise(r=>setTimeout(r,2000))
-  ]);
-
-  const {imageUrl, rowId} = getParams();
-  const cv = document.getElementById('cv');
-  const ctx = cv.getContext('2d');
-
-  const finish = () => {
-    document.title = 'DONE';
-    document.body.setAttribute('data-ready','true');
-    const status = document.getElementById('status');
-    if(status) status.remove();
-    autoDownload(cv, rowId);
-  };
-
-  if(imageUrl){
-    const img = new Image();
-    img.onload  = () => { draw(ctx, img); finish(); };
-    img.onerror = () => { draw(ctx, null); finish(); };
-    img.src = imageUrl;
-  } else {
-    draw(ctx, null);
-    finish();
-  }
-}
-
-main();
+document.getElementById('fileInput').addEventListener('change',function(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  const img=new Image();
+  img.onload=()=>render(img);
+  img.src=URL.createObjectURL(file);
+});
 </script>
 </body>
 </html>
