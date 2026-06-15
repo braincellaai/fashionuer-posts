@@ -34,6 +34,14 @@ const B_INSET=14;
 const FOOTER_FS=30;
 const FOOTER_Y=H-B_INSET;
 
+// Border settings
+const BORDER_INSET=10;       // distance from canvas edge
+const BORDER_COLOR='rgba(180,180,180,0.45)'; // light grey, semi-transparent
+const BORDER_WIDTH=1;        // thinnest possible line
+
+// Footer / label grey — same tone as border
+const LABEL_GREY='rgba(180,180,180,0.75)';
+
 function getParams(){
   const p=new URLSearchParams(window.location.search);
   return{
@@ -42,14 +50,30 @@ function getParams(){
   };
 }
 
+function drawBorder(ctx){
+  const x=BORDER_INSET+0.5;
+  const y=BORDER_INSET+0.5;
+  const bw=W-BORDER_INSET*2;
+  const bh=H-BORDER_INSET*2;
+  ctx.save();
+  ctx.strokeStyle=BORDER_COLOR;
+  ctx.lineWidth=BORDER_WIDTH;
+  ctx.strokeRect(x,y,bw,bh);
+  ctx.restore();
+}
+
 function drawFooter(ctx){
   const text='F A S H I O N U E R';
   ctx.font=`800 ${FOOTER_FS}px "League Spartan",sans-serif`;
   const tw=ctx.measureText(text).width;
   const textPad=20;
+  // Background pill — use black so text floats clean over image
   ctx.fillStyle=BLACK;
   ctx.fillRect(W/2-tw/2-textPad,FOOTER_Y-FOOTER_FS/2-2,tw+textPad*2,FOOTER_FS+4);
-  ctx.fillStyle=WHITE;ctx.textAlign='center';ctx.textBaseline='middle';
+  // Text in matching label grey
+  ctx.fillStyle=LABEL_GREY;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
   ctx.fillText(text,W/2,FOOTER_Y);
 }
 
@@ -100,24 +124,21 @@ function drawUrl(ctx, badgeMidY){
   const text='www.fashionuer.com';
   const fontSize=20;
 
-  // Different font: italic serif (Playfair Display) for elegance
-  ctx.font=`italic 700 ${fontSize}px "Playfair Display",serif`;
+  // Simple Times New Roman for clean, classic elegance
+  ctx.font=`${fontSize}px "Times New Roman",Times,serif`;
 
-  // Semi-transparent white so background image shows through
-  ctx.globalAlpha=0.55;
+  ctx.globalAlpha=0.65;
   ctx.fillStyle=WHITE;
   ctx.textAlign='right';
   ctx.textBaseline='middle';
 
-  // Subtle text shadow so it remains legible over any background
-  ctx.shadowColor='rgba(0,0,0,0.6)';
-  ctx.shadowBlur=6;
+  ctx.shadowColor='rgba(0,0,0,0.55)';
+  ctx.shadowBlur=5;
   ctx.shadowOffsetX=1;
   ctx.shadowOffsetY=1;
 
   ctx.fillText(text, W-B_INSET-10, badgeMidY);
 
-  // Reset
   ctx.globalAlpha=1;
   ctx.shadowColor='transparent';
   ctx.shadowBlur=0;
@@ -134,7 +155,7 @@ function draw(ctx,img){
     else{sh=sw/tar;sy=(img.height-sh)/2;}
     ctx.drawImage(img,sx,sy,sw,sh,0,0,W,H);
   }
-  // No border drawn
+  drawBorder(ctx);       // thin grey border, closest to edges
   drawFooter(ctx);
   const badgeMidY=drawBreakingNews(ctx);
   drawUrl(ctx,badgeMidY);
