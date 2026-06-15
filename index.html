@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1080px;height:1350px;overflow:hidden;background:#000}
@@ -20,7 +20,6 @@ canvas{display:block;width:1080px;height:1350px}
   animation:spin 0.8s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
-@font-face{font-family:'League Spartan';font-display:block;}
 </style>
 </head>
 <body>
@@ -34,6 +33,7 @@ const GOLD='#ffffff',WHITE='#ffffff',BLACK='#000000',W=1080,H=1350;
 const B_INSET=14,B_THICK=3;
 const FOOTER_FS=30;
 const FOOTER_Y=H-B_INSET;
+
 function getParams(){
   const p=new URLSearchParams(window.location.search);
   return{
@@ -41,13 +41,16 @@ function getParams(){
     rowId:p.get('rowId')||'1'
   };
 }
+
 function drawBorder(ctx){
   ctx.strokeStyle=GOLD;ctx.lineWidth=B_THICK;
   ctx.strokeRect(B_INSET,B_INSET,W-B_INSET*2,H-B_INSET*2);
 }
+
 function drawFooter(ctx){
   const text='F A S H I O N U E R';
-  ctx.font=`400 ${FOOTER_FS}px "League Spartan",sans-serif`;
+  // Bold weight
+  ctx.font=`800 ${FOOTER_FS}px "League Spartan",sans-serif`;
   const tw=ctx.measureText(text).width;
   const textPad=20;
   ctx.fillStyle=BLACK;
@@ -55,9 +58,11 @@ function drawFooter(ctx){
   ctx.fillStyle=WHITE;ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText(text,W/2,FOOTER_Y);
   ctx.strokeStyle=GOLD;ctx.lineWidth=B_THICK;
-  ctx.beginPath();ctx.moveTo(B_INSET+10,FOOTER_Y);ctx.lineTo(W/2-tw/2-textPad-24,FOOTER_Y);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(W/2+tw/2+textPad+24,FOOTER_Y);ctx.lineTo(W-B_INSET-10,FOOTER_Y);ctx.stroke();
+  // Side lines closer to border (4px gap instead of 10px)
+  ctx.beginPath();ctx.moveTo(B_INSET+4,FOOTER_Y);ctx.lineTo(W/2-tw/2-textPad-24,FOOTER_Y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W/2+tw/2+textPad+24,FOOTER_Y);ctx.lineTo(W-B_INSET-4,FOOTER_Y);ctx.stroke();
 }
+
 function drawBreakingNews(ctx){
   const x=B_INSET+10, y=B_INSET+30;
   const fontSize=26;
@@ -88,15 +93,19 @@ function drawBreakingNews(ctx){
     ctx.fill();
     sx+=stripeW+stripeGap;
   }
+  // Return badge vertical center for URL alignment
+  return y + boxH/2;
 }
-function drawUrl(ctx){
+
+function drawUrl(ctx, badgeMidY){
   const text='www.fashionuer.com';
   const fontSize=18;
   ctx.font=`600 ${fontSize}px "League Spartan",sans-serif`;
-  ctx.fillStyle=WHITE;
-  ctx.textAlign='right';ctx.textBaseline='middle';
-  ctx.fillText(text,W-B_INSET-10,B_INSET+10+fontSize/2+8);
+  ctx.fillStyle=WHITE;ctx.textAlign='right';ctx.textBaseline='middle';
+  // Aligned to BREAKING NEWS badge center
+  ctx.fillText(text,W-B_INSET-10,badgeMidY);
 }
+
 function draw(ctx,img){
   ctx.fillStyle=BLACK;ctx.fillRect(0,0,W,H);
   if(img){
@@ -108,39 +117,41 @@ function draw(ctx,img){
   }
   drawBorder(ctx);
   drawFooter(ctx);
-  drawBreakingNews(ctx);
-  drawUrl(ctx);
+  const badgeMidY=drawBreakingNews(ctx);
+  drawUrl(ctx,badgeMidY);
 }
-function autoDownload(canvas, rowId){
-  const link = document.createElement('a');
-  link.download = 'fashionuer-post-row' + rowId + '.png';
-  link.href = canvas.toDataURL('image/png');
+
+function autoDownload(canvas,rowId){
+  const link=document.createElement('a');
+  link.download='fashionuer-post-row'+rowId+'.png';
+  link.href=canvas.toDataURL('image/png');
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 }
+
 async function main(){
   await Promise.race([
     document.fonts.ready,
     new Promise(r=>setTimeout(r,2000))
   ]);
-  const {imageUrl, rowId} = getParams();
-  const cv = document.getElementById('cv');
-  const ctx = cv.getContext('2d');
-  const finish = () => {
-    document.title = 'DONE';
+  const {imageUrl,rowId}=getParams();
+  const cv=document.getElementById('cv');
+  const ctx=cv.getContext('2d');
+  const finish=()=>{
+    document.title='DONE';
     document.body.setAttribute('data-ready','true');
-    const status = document.getElementById('status');
-    if(status) status.remove();
-    autoDownload(cv, rowId);
+    const status=document.getElementById('status');
+    if(status)status.remove();
+    autoDownload(cv,rowId);
   };
   if(imageUrl){
-    const img = new Image();
-    img.onload  = () => { draw(ctx, img); finish(); };
-    img.onerror = () => { draw(ctx, null); finish(); };
-    img.src = imageUrl;
+    const img=new Image();
+    img.onload=()=>{draw(ctx,img);finish();};
+    img.onerror=()=>{draw(ctx,null);finish();};
+    img.src=imageUrl;
   } else {
-    draw(ctx, null);
+    draw(ctx,null);
     finish();
   }
 }
