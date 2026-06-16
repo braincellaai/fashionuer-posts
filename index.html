@@ -32,7 +32,7 @@ canvas{display:block;width:1080px;height:1350px}
 const WHITE='#ffffff',BLACK='#000000',W=1080,H=1350;
 const B_INSET=14;
 const FOOTER_FS=30;
-const FOOTER_Y=H-B_INSET;
+const FOOTER_Y=H-B_INSET-22;  // moved up a little
 
 // Border settings
 const BORDER_INSET=10;       // distance from canvas edge
@@ -54,7 +54,7 @@ function drawBorder(ctx){
   const x=BORDER_INSET+0.5;
   const y=BORDER_INSET+0.5;
   const bw=W-BORDER_INSET*2;
-  const bh=H-BORDER_INSET*2;
+  const bh=H-BORDER_INSET*2-18;  // bottom side moved up a little
   ctx.save();
   ctx.strokeStyle=BORDER_COLOR;
   ctx.lineWidth=BORDER_WIDTH;
@@ -124,7 +124,6 @@ function drawUrl(ctx, badgeMidY){
   const text='www.fashionuer.com';
   const fontSize=20;
 
-  // Simple Times New Roman for clean, classic elegance
   ctx.font=`${fontSize}px "Times New Roman",Times,serif`;
 
   ctx.globalAlpha=0.65;
@@ -155,7 +154,7 @@ function draw(ctx,img){
     else{sh=sw/tar;sy=(img.height-sh)/2;}
     ctx.drawImage(img,sx,sy,sw,sh,0,0,W,H);
   }
-  drawBorder(ctx);       // thin grey border, closest to edges
+  drawBorder(ctx);
   drawFooter(ctx);
   const badgeMidY=drawBreakingNews(ctx);
   drawUrl(ctx,badgeMidY);
